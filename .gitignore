@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Build and test output
+dist/
+coverage/
+*.log
+
+# Generated Prisma Client
+/generated/prisma/
+
+# Temporary files
+.npx/
+.npx
+.npx
+*.tsbuildinfo

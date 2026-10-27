@@ -1,0 +1,95 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum MatchStatus {
+  SCHEDULED
+  LIVE
+  PAUSED
+  COMPLETED
+}
+
+enum ScoringEventType {
+  POINT_AWARDED
+  POINT_UNDONE
+  MATCH_STARTED
+  MATCH_PAUSED
+  MATCH_RESUMED
+  MATCH_ENDED
+}
+
+model Player {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+
+  participants       TournamentParticipant[]
+  matchesAsPlayerOne Match[] @relation("PlayerOne")
+  matchesAsPlayerTwo Match[] @relation("PlayerTwo")
+}
+
+model Tournament {
+  id        String   @id @default(cuid())
+  name      String
+  startDate DateTime?
+  endDate   DateTime?
+  createdAt DateTime @default(now())
+
+  participants TournamentParticipant[]
+  matches      Match[]
+}
+
+model TournamentParticipant {
+  id           String   @id @default(cuid())
+  tournamentId String
+  playerId     String
+  createdAt    DateTime @default(now())
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  player     Player     @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([tournamentId, playerId])
+}
+
+model Match {
+  id           String      @id @default(cuid())
+  tournamentId String?
+  playerOneId  String
+  playerTwoId  String
+  status       MatchStatus @default(SCHEDULED)
+  bestOf       Int         @default(3)
+  scoreState   Json?
+  winnerId     String?
+  version      Int         @default(0)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  tournament Tournament? @relation(fields: [tournamentId], references: [id], onDelete: SetNull)
+  playerOne  Player      @relation("PlayerOne", fields: [playerOneId], references: [id])
+  playerTwo  Player      @relation("PlayerTwo", fields: [playerTwoId], references: [id])
+  events     ScoringEvent[]
+
+  @@index([tournamentId])
+  @@index([status])
+}
+
+model ScoringEvent {
+  id            String           @id @default(cuid())
+  matchId       String
+  sequence      Int
+  type          ScoringEventType
+  pointWinnerId String?
+  beforeState   Json?
+  afterState    Json?
+  createdAt     DateTime         @default(now())
+
+  match Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@unique([matchId, sequence])
+  @@index([matchId, createdAt])
+}
